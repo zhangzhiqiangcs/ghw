@@ -180,9 +180,9 @@ func diskWWN(paths *linuxpath.Paths, disk string) string {
 // but just the name. In other words, "sda", not "/dev/sda" and "nvme0n1" not
 // "/dev/nvme0n1") and returns a slice of pointers to Partition structs
 // representing the partitions in that disk
-func diskPartitions(ctx *context.Context, paths *linuxpath.Paths, disk string) []*Partition {
+func diskPartitions(ctx *context.Context, paths *linuxpath.Paths, device string) []*Partition {
 	out := make([]*Partition, 0)
-	path := filepath.Join(paths.SysBlock, disk)
+	path := filepath.Join(paths.SysBlock, device)
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		ctx.Warn("failed to read disk partitions: %s\n", err)
@@ -190,19 +190,19 @@ func diskPartitions(ctx *context.Context, paths *linuxpath.Paths, disk string) [
 	}
 	for _, file := range files {
 		fname := file.Name()
-		if !strings.HasPrefix(fname, disk) {
+		if !strings.HasPrefix(fname, device) {
 			continue
 		}
-		size := partitionSizeBytes(paths, disk, fname)
-		mp, pt, ro := partitionInfo(paths, fname)
+		size := partitionSizeBytes(paths, device, fname)
+		mp, pt, ro := mountInfo(paths, fname)
 		du := diskPartUUID(ctx, fname)
 		p := &Partition{
-			Name:       fname,
-			SizeBytes:  size,
-			MountPoint: mp,
-			Type:       pt,
-			IsReadOnly: ro,
-			UUID:       du,
+			Name:      fname,
+			SizeBytes: size,
+			UUID:      du,
+		}
+		if mp != "" {
+			p.MountInfo = &MountInfo{mp, pt, ro}
 		}
 		out = append(out, p)
 	}
@@ -305,6 +305,15 @@ func disks(ctx *context.Context, paths *linuxpath.Paths) []*Disk {
 		}
 		d.Partitions = parts
 
+		mp, pt, ro := mountInfo(paths, dname)
+		if mp != "" {
+			d.MountInfo = &MountInfo{
+				MountPoint: mp,
+				Type:       pt,
+				ReadOnly:   ro,
+			}
+		}
+
 		disks = append(disks, d)
 	}
 
@@ -374,11 +383,11 @@ func partitionSizeBytes(paths *linuxpath.Paths, disk string, part string) uint64
 
 // Given a full or short partition name, returns the mount point, the type of
 // the partition and whether it's readonly
-func partitionInfo(paths *linuxpath.Paths, part string) (string, string, bool) {
+func mountInfo(paths *linuxpath.Paths, device string) (string, string, bool) {
 	// Allow calling PartitionInfo with either the full partition name
 	// "/dev/sda1" or just "sda1"
-	if !strings.HasPrefix(part, "/dev") {
-		part = "/dev/" + part
+	if !strings.HasPrefix(device, "/dev") {
+		device = "/dev/" + device
 	}
 
 	// mount entries for mounted partitions look like this:
@@ -394,7 +403,7 @@ func partitionInfo(paths *linuxpath.Paths, part string) (string, string, bool) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		entry := parseMountEntry(line)
-		if entry == nil || entry.Partition != part {
+		if entry == nil || entry.Device != device {
 			continue
 		}
 		ro := true
@@ -411,7 +420,7 @@ func partitionInfo(paths *linuxpath.Paths, part string) (string, string, bool) {
 }
 
 type mountEntry struct {
-	Partition      string
+	Device         string
 	Mountpoint     string
 	FilesystemType string
 	Options        []string
@@ -445,7 +454,7 @@ func parseMountEntry(line string) *mountEntry {
 	mp = r.Replace(mp)
 
 	res := &mountEntry{
-		Partition:      fields[0],
+		Device:         fields[0],
 		Mountpoint:     mp,
 		FilesystemType: fields[2],
 	}
@@ -455,16 +464,16 @@ func parseMountEntry(line string) *mountEntry {
 }
 
 func partitionMountPoint(paths *linuxpath.Paths, part string) string {
-	mp, _, _ := partitionInfo(paths, part)
+	mp, _, _ := mountInfo(paths, part)
 	return mp
 }
 
 func partitionType(paths *linuxpath.Paths, part string) string {
-	_, pt, _ := partitionInfo(paths, part)
+	_, pt, _ := mountInfo(paths, part)
 	return pt
 }
 
 func partitionIsReadOnly(paths *linuxpath.Paths, part string) bool {
-	_, _, ro := partitionInfo(paths, part)
+	_, _, ro := mountInfo(paths, part)
 	return ro
 }

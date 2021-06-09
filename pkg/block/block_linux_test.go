@@ -26,7 +26,7 @@ func TestParseMountEntry(t *testing.T) {
 		{
 			line: "/dev/sda6 / ext4 rw,relatime,errors=remount-ro,data=ordered 0 0",
 			expected: &mountEntry{
-				Partition:      "/dev/sda6",
+				Device:         "/dev/sda6",
 				Mountpoint:     "/",
 				FilesystemType: "ext4",
 				Options: []string{
@@ -40,7 +40,7 @@ func TestParseMountEntry(t *testing.T) {
 		{
 			line: "/dev/sda8 /home/Name\\040with\\040spaces ext4 ro 0 0",
 			expected: &mountEntry{
-				Partition:      "/dev/sda8",
+				Device:         "/dev/sda8",
 				Mountpoint:     "/home/Name with spaces",
 				FilesystemType: "ext4",
 				Options: []string{
@@ -53,7 +53,7 @@ func TestParseMountEntry(t *testing.T) {
 			// placed in administrative segregation
 			line: "/dev/sda8 /home/Name\\011with\\012tab&newline ext4 ro 0 0",
 			expected: &mountEntry{
-				Partition:      "/dev/sda8",
+				Device:         "/dev/sda8",
 				Mountpoint:     "/home/Name\twith\ntab&newline",
 				FilesystemType: "ext4",
 				Options: []string{
@@ -64,7 +64,7 @@ func TestParseMountEntry(t *testing.T) {
 		{
 			line: "/dev/sda1 /home/Name\\\\withslash ext4 ro 0 0",
 			expected: &mountEntry{
-				Partition:      "/dev/sda1",
+				Device:         "/dev/sda1",
 				Mountpoint:     "/home/Name\\withslash",
 				FilesystemType: "ext4",
 				Options: []string{

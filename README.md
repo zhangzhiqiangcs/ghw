@@ -485,6 +485,7 @@ Each `ghw.Disk` struct contains the following fields:
 * `ghw.Disk.SizeBytes` contains the amount of storage the disk provides
 * `ghw.Disk.PhysicalBlockSizeBytes` contains the size of the physical blocks
   used on the disk, in bytes
+* `ghw.Disk.MountInfo` contains the mount info(mountpoint, type, readonly) of the disk, in case of mount the disk without partition. This will be `nil` if the block is partitioned.
 * `ghw.Disk.IsRemovable` contains a boolean indicating if the disk drive is
   removable
 * `ghw.Disk.DriveType` is the type of drive. It is of type `ghw.DriveType`
@@ -513,11 +514,7 @@ Each `ghw.Partition` struct contains these fields:
   e.g. "sda1"
 * `ghw.Partition.SizeBytes` contains the amount of storage the partition
   provides
-* `ghw.Partition.MountPoint` contains a string with the partition's mount
-  point, or "" if no mount point was discovered
-* `ghw.Partition.Type` contains a string indicated the filesystem type for the
-  partition, or "" if the system could not determine the type
-* `ghw.Partition.IsReadOnly` is a bool indicating the partition is read-only
+* `ghw.Partition.MountInfo` contains the mount info(mountpoint, type, readonly) of the partition. This will be `nil` if this partition is not mounted.
 * `ghw.Partition.Disk` is a pointer to the `ghw.Disk` object associated with
   the partition. This will be `nil` if the `ghw.Partition` struct was returned
   by the `ghw.DiskPartitions()` library function.

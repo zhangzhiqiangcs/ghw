@@ -106,20 +106,25 @@ type Disk struct {
 	SerialNumber string       `json:"serial_number"`
 	WWN          string       `json:"wwn"`
 	Partitions   []*Partition `json:"partitions"`
+	MountInfo    *MountInfo   `json:"mount_info"`
 	// TODO(jaypipes): Add PCI field for accessing PCI device information
 	// PCI *PCIDevice `json:"pci"`
 }
 
+type MountInfo struct {
+	MountPoint string `json:"mount_point"`
+	Type       string `json:"type"`
+	ReadOnly   bool   `json:"read_only"`
+}
+
 // Partition describes a logical division of a Disk.
 type Partition struct {
-	Disk       *Disk  `json:"-"`
-	Name       string `json:"name"`
-	Label      string `json:"label"`
-	MountPoint string `json:"mount_point"`
-	SizeBytes  uint64 `json:"size_bytes"`
-	Type       string `json:"type"`
-	IsReadOnly bool   `json:"read_only"`
-	UUID       string `json:"uuid"` // This would be volume UUID on macOS, PartUUID on linux, empty on Windows
+	Disk      *Disk      `json:"-"`
+	Name      string     `json:"name"`
+	Label     string     `json:"label"`
+	SizeBytes uint64     `json:"size_bytes"`
+	UUID      string     `json:"uuid"` // This would be volume UUID on macOS, PartUUID on linux, empty on Windows
+	MountInfo *MountInfo `json:"mount_info"`
 }
 
 // Info describes all disk drives and partitions in the host system.
@@ -159,6 +164,13 @@ func (i *Info) String() string {
 }
 
 func (d *Disk) String() string {
+	typeStr := ""
+	mountStr := ""
+	if d.MountInfo != nil {
+		typeStr = fmt.Sprintf(" [%s]", d.MountInfo.Type)
+		mountStr = fmt.Sprintf(" mounted@%s", d.MountInfo.MountPoint)
+	}
+
 	sizeStr := util.UNKNOWN
 	if d.SizeBytes > 0 {
 		size := d.SizeBytes
@@ -191,11 +203,13 @@ func (d *Disk) String() string {
 		removable = " removable=true"
 	}
 	return fmt.Sprintf(
-		"%s %s (%s) %s [@%s%s]%s%s%s%s%s",
+		"%s %s (%s) %s%s%s [@%s%s]%s%s%s%s%s",
 		d.Name,
 		d.DriveType.String(),
 		sizeStr,
 		d.StorageController.String(),
+		typeStr,
+		mountStr,
 		d.BusPath,
 		atNode,
 		vendor,
@@ -208,13 +222,12 @@ func (d *Disk) String() string {
 
 func (p *Partition) String() string {
 	typeStr := ""
-	if p.Type != "" {
-		typeStr = fmt.Sprintf("[%s]", p.Type)
-	}
 	mountStr := ""
-	if p.MountPoint != "" {
-		mountStr = fmt.Sprintf(" mounted@%s", p.MountPoint)
+	if p.MountInfo != nil {
+		typeStr = fmt.Sprintf("[%s]", p.MountInfo.Type)
+		mountStr = fmt.Sprintf(" mounted@%s", p.MountInfo.MountPoint)
 	}
+
 	sizeStr := util.UNKNOWN
 	if p.SizeBytes > 0 {
 		size := p.SizeBytes
