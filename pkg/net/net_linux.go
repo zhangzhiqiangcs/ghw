@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/jaypipes/ghw/pkg/context"
@@ -63,6 +64,8 @@ func nics(ctx *context.Context) []*NIC {
 			Name:      filename,
 			IsVirtual: isVirtual,
 		}
+
+		nic.MTU = netDeviceMTU(paths, filename)
 
 		mac := netDeviceMacAddress(paths, filename)
 		nic.MacAddress = mac
@@ -168,6 +171,19 @@ func netParseEthtoolFeature(line string) *NICCapability {
 		IsEnabled: enabled,
 		CanEnable: !fixed,
 	}
+}
+
+func netDeviceMTU(paths *linuxpath.Paths, dev string) int {
+	mtuPath := filepath.Join(paths.SysClassNet, dev, "mtu")
+	contents, err := ioutil.ReadFile(mtuPath)
+	if err != nil {
+		return 0
+	}
+	mtu, err := strconv.Atoi(strings.TrimSpace(string(contents)))
+	if err != nil {
+		return 0
+	}
+	return mtu
 }
 
 func netDevicePCIAddress(netDevDir, netDevName string) *string {
