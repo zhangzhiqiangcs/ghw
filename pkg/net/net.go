@@ -24,6 +24,7 @@ type NIC struct {
 	Name         string           `json:"name"`
 	MacAddress   string           `json:"mac_address"`
 	IsVirtual    bool             `json:"is_virtual"`
+	MTU          int              `json:"mtu"`
 	Capabilities []*NICCapability `json:"capabilities"`
 	PCIAddress   *string          `json:"pci_address,omitempty"`
 	// TODO(fromani): add other hw addresses (USB) when we support them
